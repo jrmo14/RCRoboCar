@@ -1,2 +1,1 @@
-import sys
-pipe = open("/dev")
+# Removed for now

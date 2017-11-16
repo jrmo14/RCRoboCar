@@ -46,7 +46,7 @@ class RemoteServer:
         self.ser.write(struct.pack(">B", self.turn))
 
     def write_array(self, arr, fname):
-        c = bcolz.carray(arr, fname=fname, mode='w')
+        c = bcolz.carray(arr, rootdir=fname, mode='w')
         c.flush()
 
     def write_image_and_controls(self):
