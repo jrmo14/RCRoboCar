@@ -7,7 +7,7 @@ import six.moves.cPickle as cP
 import struct
 
 
-class RemoteServer:
+class CarServer:
     def __init__(self, server_address, server_port, arduino_port, camera_port=0, ramp_frames=30, x_dim=240, y_dim=240):
         """
         General setup
@@ -39,7 +39,9 @@ class RemoteServer:
     def handle_controls(self):
         data, addr = self.sock.recvfrom(4096)
         forward, turn, time = cP.loads(data)
-
+        # Arduino is expecting int between 0 and 100
+        forward = int(forward*100)
+        turn = int(turn*100)
         self.ser.write(struct.pack(">BB", forward, turn))
         return forward, turn
 
@@ -65,6 +67,6 @@ class RemoteServer:
             self.write_image_and_controls(forward, turn)
 
 
-server = RemoteServer("roboCar", 1337, "")
+server = CarServer("roboCar", 1337, "")
 
 server.run()
