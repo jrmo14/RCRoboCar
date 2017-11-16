@@ -36,14 +36,14 @@ class RemoteServer:
             "Opened socket at {} on port {}, started communications with arduino at {}".format(server_addr, server_port,
                                                                                                self.ser.port))
 
+    # We should receive a float between -1 and 1
     def handle_controls(self):
         data, addr = self.sock.recvfrom(4096)
         self.forward, self.turn = data
         data = cP.loads(data)
-        self.forward = data[0]
-        self.turn = data[1]
-        self.ser.write(struct.pack(">B", self.forward))
-        self.ser.write(struct.pack(">B", self.turn))
+        self.forward = int(data[0]*100)
+        self.turn = int(data[1]*100)
+        self.ser.write(struct.pack(">BB", self.forward, self.turn))
 
     def write_array(self, arr, fname):
         c = bcolz.carray(arr, rootdir=fname, mode='w')
