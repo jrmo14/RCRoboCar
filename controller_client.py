@@ -30,10 +30,9 @@ class ControllerClient:
         self.sock.sendto(msg, (self._address, self._port))
 
     def run(self):
-        try:
-            print("connecting...")
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            print("Connected to socket")
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            self.sock = sock
+            print("Socket initialized")
             while True:
                 # These return a value of -1 to 1
                 # self.controller_reader.update_events()
@@ -51,8 +50,6 @@ class ControllerClient:
                 self.sock.sendto(message_enc, (self._address, self._port))
 
                 time.sleep(self.delay)
-        finally:
-            self.sock.close()
 
 
 if __name__ == '__main__':

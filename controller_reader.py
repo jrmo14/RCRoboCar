@@ -12,6 +12,7 @@ class ControllerReader:
 
     @property
     def joystick(self):
+        # We need to pump the event server so that controller events are processed
         pygame.event.pump()
         return self._joystick
 
@@ -26,7 +27,6 @@ class ControllerReader:
     @staticmethod
     def update_events():
         pygame.event.pump()
-        # sleep(0.5)
 
 
 if __name__ == '__main__':
