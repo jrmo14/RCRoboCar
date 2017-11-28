@@ -16,7 +16,17 @@ void setup() {
   Serial.begin(9600);
 }
 
+void init_coms() {
+    while(1){
+        if(Serial.available() > 0 && Serial.read() = 'r'){
+            Serial.write('r');
+            return;
+        }
+    }
+}
+
 void loop() {
+  init_coms();
   // Get two values
   while(Serial.available() > 3)
     for(int i = 0; i < 2; i++){

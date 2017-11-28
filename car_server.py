@@ -5,10 +5,12 @@ import numpy as np
 import bcolz
 import six.moves.cPickle as cP
 import struct
+from time import sleep
 
 
 class CarServer:
-    def __init__(self, server_address, server_port, arduino_port, camera_port=0, ramp_frames=30, x_dim=240, y_dim=240):
+    def __init__(self, server_address, server_port, arduino_port, camera_port=0, ramp_frames=30, x_dim=240, y_dim=240,
+                 save_loc='/home/nvidia/train_data/'):
         """
         General setup
         Need to figure out what the location of the arduino is
@@ -19,6 +21,8 @@ class CarServer:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((server_address, server_port))
 
+        self.save_loc = save_loc
+
         self.camera_port = camera_port
         self.ramp_frames = ramp_frames
         self.x_dim = x_dim
@@ -28,8 +32,10 @@ class CarServer:
         self.ser = serial.Serial(port=arduino_port)
         self.frames_captured = 0
         self.written_sets = 0
-        self.images_and_data = np.ndarray([50, 1, self.x_dim, self.y_dim, 3])
-
+        self.images_shape = (50, self.x_dim, self.y_dim, 3)
+        self.labels_shape = (50, 2)
+        self.images_buffer = np.ndarray(self.images_shape)
+        self.labels_buffer = np.ndarray(self.labels_shape)
         print(
             "Opened socket at {} on port {}, started communications with arduino at {}".format(server_address,
                                                                                                server_port,
@@ -39,9 +45,9 @@ class CarServer:
     def handle_controls(self):
         data, addr = self.sock.recvfrom(4096)
         forward, turn, time = cP.loads(data)
-        # Arduino is expecting int between 0 and 100
-        forward = int(forward*100)
-        turn = int(turn*100)
+        # Arduino is expecting int between -100 and 100
+        forward = int(forward * 100)
+        turn = int(turn * 100)
         self.ser.write(struct.pack(">BB", forward, turn))
         return forward, turn
 
@@ -55,18 +61,37 @@ class CarServer:
         im = cv2.resize(im, (self.x_dim, self.y_dim))
         # This could be completely wrong, each element should be [(forward, turn), image]
         # image is 240 x 240 x 3 array
-        self.images_and_data[self.frames_captured, 0] = np.ndarray((forward, turn), im)
+        self.images_buffer[self.frames_captured] = im
+        self.labels_buffer[self.frames_captured] = np.asarray((forward, turn))
         self.frames_captured += 1
         if self.frames_captured == 50:
-            self.write_array(self.images_and_data, str(self.written_sets) + '.bcz')
+            np.save(self.save_loc + str(self.written_sets) + 'data', self.images_buffer)
+            np.save(self.save_loc + str(self.written_sets) + 'labels', self.labels_buffer)
+            self.images_buffer = np.empty(self.images_shape)
+            self.labels_buffer = np.empty(self.labels_shape)
             self.frames_captured = 0
 
+    # Jank AF event handling
+    def __wait_for_connections(self):
+        while 1:
+            data, addr = self.sock.recvfrom(4096)
+            if data == 'r':
+                break
+            sleep(.001)
+        while 1:
+            self.ser.write('r')
+            if self.ser.read() == 'r':
+                return
+            sleep(.001)
+
     def run(self):
+        self.__wait_for_connections()
+
         while True:
             forward, turn = self.handle_controls()
             self.write_image_and_controls(forward, turn)
 
 
-server = CarServer("roboCar", 1337, "")
+server = CarServer("roboCar", 7777, "")
 
 server.run()

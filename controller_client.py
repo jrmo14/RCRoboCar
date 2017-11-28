@@ -33,6 +33,7 @@ class ControllerClient:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             self.sock = sock
             print("Socket initialized")
+            self.send_message('r')
             while True:
                 # These return a value of -1 to 1
                 # self.controller_reader.update_events()
